@@ -10,6 +10,7 @@ import json
 import os
 import subprocess
 import shutil
+import sys
 import time
 from pathlib import Path
 import tkinter as tk
@@ -29,6 +30,14 @@ class RPSApp(tk.Tk):
         super().__init__()
         self.title("Rock Paper Scissors")
         self.resizable(False, False)
+
+        # Disable menubar in some bundled macOS contexts where Tk + NS menu creation crashes
+        self._allow_menubar = True
+        try:
+            if sys.platform == 'darwin' and ('/Contents/MacOS/' in os.path.abspath(sys.executable) or getattr(sys, 'frozen', False)):
+                self._allow_menubar = False
+        except Exception:
+            pass
 
         self.player_score = 0
         self.computer_score = 0
@@ -54,14 +63,17 @@ class RPSApp(tk.Tk):
                 self.computer_score = int(data.get("computer_score", 0))
                 self.rounds = int(data.get("rounds", 0))
                 self.history = data.get("history", [])
+                self.sounds_enabled = bool(data.get("sounds_enabled", True))
             else:
                 self.history = []
+                self.sounds_enabled = True
         except Exception:
             # if loading fails, start fresh
             self.player_score = 0
             self.computer_score = 0
             self.rounds = 0
             self.history = []
+            self.sounds_enabled = True
 
     def _save_state(self):
         try:
@@ -71,6 +83,7 @@ class RPSApp(tk.Tk):
                 "computer_score": self.computer_score,
                 "rounds": self.rounds,
                 "history": self.history[:1000],
+                "sounds_enabled": bool(getattr(self, 'sounds_enabled', True)),
                 "updated_at": time.time(),
             }
             STATE_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
@@ -79,19 +92,33 @@ class RPSApp(tk.Tk):
 
     # ----- UI -----
     def _build_ui(self):
-        # Menu
-        menubar = tk.Menu(self)
-        game_menu = tk.Menu(menubar, tearoff=0)
-        game_menu.add_command(label="Save Log…", command=self.save_log)
-        game_menu.add_command(label="Reset Scores", command=self.reset_scores)
-        game_menu.add_separator()
-        game_menu.add_command(label="Quit", command=self.quit_app)
-        menubar.add_cascade(label="Game", menu=game_menu)
+        # Menu - skip building on macOS bundle contexts known to crash
+        if self._allow_menubar:
+            try:
+                menubar = tk.Menu(self)
+                game_menu = tk.Menu(menubar, tearoff=0)
+                game_menu.add_command(label="Save Log...", command=self.save_log)
+                game_menu.add_command(label="Settings...", command=self.show_settings)
+                game_menu.add_command(label="Reset Scores", command=self.reset_scores)
+                game_menu.add_separator()
+                game_menu.add_command(label="Quit", command=self.quit_app)
+                menubar.add_cascade(label="Game", menu=game_menu)
 
-        help_menu = tk.Menu(menubar, tearoff=0)
-        help_menu.add_command(label="About", command=self.show_about)
-        menubar.add_cascade(label="Help", menu=help_menu)
-        self.config(menu=menubar)
+                help_menu = tk.Menu(menubar, tearoff=0)
+                help_menu.add_command(label="About", command=self.show_about)
+                menubar.add_cascade(label="Help", menu=help_menu)
+                self.config(menu=menubar)
+            except Exception as e:
+                # Log the menu-building error for debugging, but continue without a menubar
+                try:
+                    self._ensure_state_dir()
+                    (STATE_DIR / 'menu_error.log').write_text(f"Menu build failed: {e}\n")
+                except Exception:
+                    pass
+                tk.Label(self, text="(menu unavailable on this machine)").pack()
+        else:
+            # intentionally skip menu creation in certain macOS bundle contexts
+            tk.Label(self, text="(menu disabled in bundled app)").pack()
 
         top = tk.Frame(self, padx=10, pady=10)
         top.pack()
@@ -161,16 +188,19 @@ class RPSApp(tk.Tk):
         if result == 'player':
             self.player_score += 1
             res_text = 'You win this round!'
-            self._play_sound('win.wav')
+            if getattr(self, 'sounds_enabled', True):
+                self._play_sound('win.wav')
             self._flash_status('green')
         elif result == 'computer':
             self.computer_score += 1
             res_text = 'Computer wins this round.'
-            self._play_sound('lose.wav')
+            if getattr(self, 'sounds_enabled', True):
+                self._play_sound('lose.wav')
             self._flash_status('red')
         else:
             res_text = "Tie."
-            self._play_sound('tie.wav')
+            if getattr(self, 'sounds_enabled', True):
+                self._play_sound('tie.wav')
             self._flash_status('gray')
 
         status = f"You: {player_choice}  —  Computer: {computer_choice}. {res_text}"
@@ -190,6 +220,9 @@ class RPSApp(tk.Tk):
 
     # ----- sounds & animation -----
     def _play_sound(self, filename: str):
+        # Respect user setting
+        if not getattr(self, 'sounds_enabled', True):
+            return
         path = ASSETS_DIR / filename
         if not path.exists():
             return
@@ -209,6 +242,15 @@ class RPSApp(tk.Tk):
         except Exception:
             # some platforms may not support changing bg; ignore
             pass
+
+    def _toggle_mute(self):
+        self.sounds_enabled = not getattr(self, 'sounds_enabled', True)
+        self._save_state()
+        state = "unmuted" if self.sounds_enabled else "muted"
+        # brief status feedback
+        prev = self.status_label.cget('text')
+        self.status_label.config(text=f"(Sound {state}) {prev}")
+        self.after(1200, lambda: self.status_label.config(text=prev))
 
     # ----- controls -----
     def save_log(self):
@@ -251,6 +293,28 @@ class RPSApp(tk.Tk):
         messagebox.showinfo("About Rock Paper Scissors",
                             "Rock Paper Scissors\n\nA small learning project.\n\nKeyboard: r/p/s to play, q to quit.\nBuilt with Python + Tkinter.")
 
+    def show_settings(self):
+        # Simple settings dialog to toggle sounds
+        dlg = tk.Toplevel(self)
+        dlg.title("Settings")
+        dlg.resizable(False, False)
+        var = tk.BooleanVar(value=getattr(self, 'sounds_enabled', True))
+
+        def save_and_close():
+            self.sounds_enabled = var.get()
+            self._save_state()
+            dlg.destroy()
+            # update status to show mute state briefly
+            if not self.sounds_enabled:
+                self.status_label.config(text="(Muted) " + self.status_label.cget('text'))
+
+        chk = tk.Checkbutton(dlg, text="Enable sounds", variable=var)
+        chk.pack(padx=12, pady=8)
+        btn_frame = tk.Frame(dlg)
+        btn_frame.pack(pady=6)
+        tk.Button(btn_frame, text="Save", command=save_and_close).pack(side='left', padx=6)
+        tk.Button(btn_frame, text="Cancel", command=dlg.destroy).pack(side='right', padx=6)
+
     # ----- key bindings -----
     def _bind_keys(self):
         # lowercase and uppercase
@@ -259,6 +323,9 @@ class RPSApp(tk.Tk):
             self.bind(k.upper(), lambda e, c=choice: self.play(c))
         # quit keys
         self.bind('q', lambda e: self.quit_app())
+        # mute toggle
+        self.bind('m', lambda e: self._toggle_mute())
+        self.bind('M', lambda e: self._toggle_mute())
         # Command-Q on mac
         try:
             self.bind('<Command-q>', lambda e: self.quit_app())
