@@ -28,4 +28,12 @@ if [ -x "$SCRIPT_DIR/.venv/bin/python" ]; then
   PY="$SCRIPT_DIR/.venv/bin/python"
 fi
 
-exec "$PY" "$SCRIPT_DIR/rps_gui.py" "$@"
+# Ensure state dir for logs exists
+STATE_DIR="$HOME/Library/Application Support/RPS"
+mkdir -p "$STATE_DIR"
+LOGFILE="$STATE_DIR/launch.log"
+# Timestamp header for each launch
+echo "---- Launch at $(date -u +'%Y-%m-%dT%H:%M:%SZ') ----" >> "$LOGFILE"
+
+# Exec Python and capture stdout/stderr to the log for later inspection
+exec "$PY" "$SCRIPT_DIR/rps_gui.py" "$@" >> "$LOGFILE" 2>&1
