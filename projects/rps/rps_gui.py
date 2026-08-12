@@ -48,6 +48,12 @@ class RPSApp(tk.Tk):
         self._build_ui()
         self._bind_keys()
 
+        # Ensure the main window becomes visible and focused when launched by external launchers (Platypus)
+        try:
+            self.after(150, self._ensure_visible)
+        except Exception:
+            pass
+
     # ----- state persistence -----
     def _ensure_state_dir(self):
         try:
@@ -315,8 +321,29 @@ class RPSApp(tk.Tk):
         tk.Button(btn_frame, text="Save", command=save_and_close).pack(side='left', padx=6)
         tk.Button(btn_frame, text="Cancel", command=dlg.destroy).pack(side='right', padx=6)
 
+    def _ensure_visible(self):
+        """Try to make the main window visible and focused (helpful when launched by Platypus)."""
+        try:
+            self.update_idletasks()
+            # deiconify in case the window was hidden
+            try:
+                self.deiconify()
+            except Exception:
+                pass
+            try:
+                self.lift()
+            except Exception:
+                pass
+            try:
+                self.focus_force()
+            except Exception:
+                pass
+        except Exception:
+            pass
+
     # ----- key bindings -----
     def _bind_keys(self):
+
         # lowercase and uppercase
         for k, choice in (('r', 'rock'), ('p', 'paper'), ('s', 'scissors')):
             self.bind(k, lambda e, c=choice: self.play(c))
