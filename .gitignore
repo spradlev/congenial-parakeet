@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.pyc
+# macOS
+.DS_Store
+# Virtual env
+.venv/
+# Build artifacts
+projects/rps/build/
+projects/rps/dist/
+projects/rps/*.egg-info/
+projects/rps/__pycache__/
+projects/rps/.DS_Store
+# General
+build/
+dist/
