@@ -716,35 +716,6 @@
     </div>
   </aside>
 
-  <!-- Settings modal for desktop -->
-  <aside class="settings-modal" id="settingsModal" aria-label="Settings">
-    <div class="panel sidebar-panel" style="max-width:420px; margin: 20px;">
-      <div class="panel-header" style="margin-bottom:12px;">
-        <h3>Settings</h3>
-        <button class="ghost-btn small" type="button" id="closeSettings">Close</button>
-      </div>
-      <div class="settings-list">
-        <div>
-          <label for="keywordFilter">Mute keywords</label>
-          <input id="keywordFilter" type="text" value="crime, stock market" aria-label="Mute keywords" />
-        </div>
-        <div>
-          <label for="readingMode">Reading mode</label>
-          <input id="readingMode" type="text" value="calm" aria-label="Reading mode" />
-        </div>
-        <div>
-          <label>Language preference</label>
-          <div>
-            <label><input type="radio" name="langMode" value="prefer" checked /> Prefer system language (fallback allowed)</label><br/>
-            <label><input type="radio" name="langMode" value="strict" /> Strict: show only system language</label>
-          </div>
-        </div>
-        <div>
-          <button class="ghost-btn small" type="button" id="openDiscoveryFromSettings">Show discovery</button>
-        </div>
-      </div>
-    </div>
-  </aside>
 
   <div class="modal-backdrop" id="articleModal" aria-hidden="true">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
@@ -1297,12 +1268,8 @@
         setDrawerOpen(false);
       });
 
-      const closeSettings = document.getElementById('closeSettings');
-      const settingsModal = document.getElementById('settingsModal');
       const settingsPanel = document.getElementById('settingsPanel');
-      if (closeSettings && settingsModal) closeSettings.addEventListener('click', () => settingsModal.classList.remove('open'));
-      // Also support closing the inline desktop settings panel
-      if (closeSettings && settingsPanel) closeSettings.addEventListener('click', () => { settingsPanel.style.display = 'none'; const discoverPanel = document.getElementById('discoverPanel'); if (discoverPanel) discoverPanel.style.display = 'block'; });
+      // No separate modal — settings live inline in the sidebar on desktop
 
       drawerBackdrop.addEventListener('click', () => setDrawerOpen(false));
 
@@ -1399,8 +1366,14 @@
       if (event.key === 'Escape' && discoveryDrawer.classList.contains('open')) {
         setDrawerOpen(false);
       }
-      if (event.key === 'Escape' && document.getElementById('settingsModal')?.classList.contains('open')) {
-        document.getElementById('settingsModal').classList.remove('open');
+      // Hide desktop sidebar (and reset to Discovery tab) when Escape pressed
+      if (event.key === 'Escape' && document.querySelector('.desktop-sidebar')?.classList.contains('visible')) {
+        const desktop = document.querySelector('.desktop-sidebar');
+        desktop.classList.remove('visible');
+        const settingsPanel = document.getElementById('settingsPanel');
+        const discoverPanel = document.getElementById('discoverPanel');
+        if (settingsPanel) settingsPanel.style.display = 'none';
+        if (discoverPanel) discoverPanel.style.display = 'block';
       }
     });
 
