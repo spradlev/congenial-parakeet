@@ -595,6 +595,13 @@
         align-items: flex-start;
       }
     }
+
+    /* Desktop: hide the Discover quick button and style sidebar tabs */
+    @media (min-width: 861px) {
+      #toggleDiscovery { display: none !important; }
+      .sidebar-tabs { display: flex; gap: 8px; margin-top: 8px; }
+      .tab-btn { padding: 6px 8px; font-size: 0.85rem; }
+    }
   </style>
 </head>
 <body>
@@ -643,7 +650,14 @@
 
       <aside class="sidebar desktop-sidebar" aria-label="Discovery sidebar">
         <div class="panel sidebar-panel" id="discoverPanel">
-          <h3>Discovery</h3>
+          <div class="sidebar-header">
+            <h3 id="sidebarTitle">Discovery</h3>
+            <div class="sidebar-tabs">
+              <button class="ghost-btn small tab-btn" id="sidebarTabDiscovery" type="button">Discovery</button>
+              <button class="ghost-btn small tab-btn" id="sidebarTabSettings" type="button">Settings</button>
+            </div>
+          </div>
+
           <div class="results-list" style="margin-bottom: 12px;">
             <div>
               <label for="discoverySearch">Find new sources or topics</label>
@@ -1257,7 +1271,7 @@
       });
 
       document.getElementById('menuButton').addEventListener('click', () => {
-        // On small screens open the discovery drawer; on desktop show settings in the sidebar
+        // On small screens open the discovery drawer; on desktop open the sidebar and default to Discovery
         if (window.matchMedia && window.matchMedia('(max-width: 860px)').matches) {
           const isOpen = !discoveryDrawer.classList.contains('open');
           setDrawerOpen(isOpen);
@@ -1265,11 +1279,16 @@
           const desktop = document.querySelector('.desktop-sidebar');
           const settingsPanel = document.getElementById('settingsPanel');
           const discoverPanel = document.getElementById('discoverPanel');
-          if (desktop) desktop.classList.toggle('visible');
-          if (settingsPanel && discoverPanel) {
-            const showingSettings = settingsPanel.style.display === 'block';
-            settingsPanel.style.display = showingSettings ? 'none' : 'block';
-            discoverPanel.style.display = showingSettings ? 'block' : 'none';
+          if (desktop) {
+            const wasVisible = desktop.classList.contains('visible');
+            desktop.classList.toggle('visible');
+            // when opening, ensure discovery shows first
+            if (!wasVisible) {
+              if (discoverPanel) discoverPanel.style.display = 'block';
+              if (settingsPanel) settingsPanel.style.display = 'none';
+              const sidebarTitle = document.getElementById('sidebarTitle');
+              if (sidebarTitle) sidebarTitle.textContent = 'Discovery';
+            }
           }
         }
       });
@@ -1316,8 +1335,33 @@
       const showDiscoveryBtn = document.getElementById('openDiscoveryFromSettings');
       if (showDiscoveryBtn) showDiscoveryBtn.addEventListener('click', () => {
         const desktop = document.querySelector('.desktop-sidebar');
-        if (desktop) desktop.classList.toggle('visible');
+        if (desktop) {
+          desktop.classList.add('visible');
+          const settingsPanel = document.getElementById('settingsPanel');
+          const discoverPanel = document.getElementById('discoverPanel');
+          if (settingsPanel) settingsPanel.style.display = 'none';
+          if (discoverPanel) discoverPanel.style.display = 'block';
+          const sidebarTitle = document.getElementById('sidebarTitle');
+          if (sidebarTitle) sidebarTitle.textContent = 'Discovery';
+        }
       });
+
+      // Sidebar tab switching (desktop inline)
+      const tabDiscovery = document.getElementById('sidebarTabDiscovery');
+      const tabSettings = document.getElementById('sidebarTabSettings');
+      const sidebarTitle = document.getElementById('sidebarTitle');
+      if (tabDiscovery && tabSettings) {
+        tabDiscovery.addEventListener('click', () => {
+          document.getElementById('discoverPanel').style.display = 'block';
+          document.getElementById('settingsPanel').style.display = 'none';
+          if (sidebarTitle) sidebarTitle.textContent = 'Discovery';
+        });
+        tabSettings.addEventListener('click', () => {
+          document.getElementById('discoverPanel').style.display = 'none';
+          document.getElementById('settingsPanel').style.display = 'block';
+          if (sidebarTitle) sidebarTitle.textContent = 'Settings';
+        });
+      }
     }
 
     function toggleLike(articleId) {
