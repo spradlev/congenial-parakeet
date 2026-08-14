@@ -1216,8 +1216,14 @@
       });
 
       document.getElementById('toggleDiscovery').addEventListener('click', () => {
-        const isOpen = !discoveryDrawer.classList.contains('open');
-        setDrawerOpen(isOpen);
+        // On small screens open the discovery drawer; on desktop toggle the sidebar visibility
+        if (window.matchMedia && window.matchMedia('(max-width: 860px)').matches) {
+          const isOpen = !discoveryDrawer.classList.contains('open');
+          setDrawerOpen(isOpen);
+        } else {
+          const desktop = document.querySelector('.desktop-sidebar');
+          if (desktop) desktop.classList.toggle('visible');
+        }
       });
 
       document.getElementById('menuButton').addEventListener('click', () => {
