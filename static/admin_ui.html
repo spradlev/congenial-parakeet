@@ -311,6 +311,15 @@
       gap: 18px;
     }
 
+    /* Desktop discovery sidebar is hidden by default; enable via Settings -> Show discovery */
+    .desktop-sidebar {
+      display: none;
+    }
+
+    .desktop-sidebar.visible {
+      display: block;
+    }
+
     .sidebar-panel {
       padding: 16px;
     }
@@ -642,6 +651,16 @@
               <label for="readingMode">Reading mode</label>
               <input id="readingMode" type="text" value="calm" aria-label="Reading mode" />
             </div>
+            <div>
+              <label>Language preference</label>
+              <div>
+                <label><input type="radio" name="langMode" value="prefer" checked /> Prefer system language (fallback allowed)</label><br/>
+                <label><input type="radio" name="langMode" value="strict" /> Strict: show only system language</label>
+              </div>
+            </div>
+            <div>
+              <button class="ghost-btn small" type="button" id="openDiscoveryFromSettings">Show discovery</button>
+            </div>
           </div>
         </div>
       </aside>
@@ -814,6 +833,12 @@
     }
 
     function renderArticles(list) {
+      const blockedSources = getBlockedSources();
+      const blockedTopics = getBlockedTopics().map(normalizeSearchText);
+      const likes = getLikes();
+      const langMode = getLangMode();
+      const pref = getPreferredLanguage();
+
       const ordered = [...list].sort((a, b) => {
         const aDate = new Date(a.published || a.inserted_at || 0).getTime();
         const bDate = new Date(b.published || b.inserted_at || 0).getTime();
@@ -822,24 +847,45 @@
 
       articleIndex = [];
       articleList.innerHTML = '';
-      const countLabel = ordered.length === 1 ? '1 story' : `${ordered.length} stories`;
+
+      // pre-filter by language and blocked sources/topics
+      const filtered = ordered.filter((article) => {
+        const src = (article.source_name || '').trim();
+        if (blockedSources.includes(src)) return false;
+
+        const titleNorm = normalizeSearchText(article.title || '');
+        if (blockedTopics.some((t) => t && titleNorm.includes(t))) return false;
+
+        const aLang = (article.language || article.lang || '').toString().toLowerCase().split('-')[0];
+        if (langMode === 'strict') {
+          // require explicit language and match
+          if (!aLang) return false;
+          return aLang === pref;
+        }
+        // prefer mode: keep if unknown OR matches preferred
+        return !aLang || aLang === pref;
+      });
+
+      const countLabel = filtered.length === 1 ? '1 story' : `${filtered.length} stories`;
       countPill.textContent = countLabel;
 
-      if (!ordered.length) {
+      if (!filtered.length) {
         articleList.innerHTML = '<div class="empty-state">No stories are waiting in the sandbox right now.</div>';
         return;
       }
 
-      articleIndex = ordered.flatMap((article) => [article.title, article.source_name]).filter(Boolean);
+      articleIndex = filtered.flatMap((article) => [article.title, article.source_name]).filter(Boolean);
 
-      ordered.forEach((article) => {
+      filtered.forEach((article) => {
         const card = document.createElement('article');
         card.className = 'article-card';
         const summary = (article.summary || article.content || 'No summary provided.').replace(/<[^>]+>/g, '').trim();
+        const src = article.source_name || 'Source';
+        const liked = likes.includes(article.id);
         card.innerHTML = `
           <div class="article-head">
             <div>
-              <div class="article-meta">${article.source_name || 'Source'} • ${formatDate(article.published)}</div>
+              <div class="article-meta">${src} • ${formatDate(article.published)}</div>
               <h3>${article.title || 'Untitled article'}</h3>
             </div>
           </div>
@@ -848,10 +894,18 @@
             <button class="primary-btn small" type="button" data-read="${article.id}">Read</button>
             <button class="primary-btn small" type="button" data-approve="${article.id}">Approve</button>
             <button class="danger-btn small" type="button" data-reject="${article.id}">Reject</button>
+            <button class="link-btn small" type="button" data-like="${article.id}">${liked ? 'Liked' : 'Like'}</button>
+            <button class="ghost-btn small" type="button" data-reject-topic="${escapeHtml(article.title || '')}">Reject topic</button>
+            <button class="ghost-btn small" type="button" data-block-source="${escapeHtml(src)}">Block source</button>
           </div>
         `;
         articleList.appendChild(card);
       });
+    }
+
+    // small helper to safely embed strings into data attrs
+    function escapeHtml(str) {
+      return String(str).replace(/"/g, '&quot;').replace(/'/g, "&#39;");
     }
 
     function renderDiscoveryList() {
@@ -872,11 +926,39 @@
       mobileSourceList.innerHTML = markup;
     }
 
+    const BLOCKED_SOURCES_KEY = 'mnf_blocked_sources';
+    const BLOCKED_TOPICS_KEY = 'mnf_blocked_topics';
+    const LIKES_KEY = 'mnf_likes';
+    const LANG_MODE_KEY = 'mnf_lang_mode'; // 'prefer' or 'strict'
+
     function getPreferredLanguage() {
       const navLang = (navigator.language || navigator.languages?.[0] || 'en').toLowerCase();
       const primary = navLang.split('-')[0];
       return primary || 'en';
     }
+
+    function getLangMode() {
+      return localStorage.getItem(LANG_MODE_KEY) || 'prefer';
+    }
+
+    function setLangMode(mode) {
+      localStorage.setItem(LANG_MODE_KEY, mode);
+    }
+
+    function getBlockedSources() {
+      try { return JSON.parse(localStorage.getItem(BLOCKED_SOURCES_KEY) || '[]'); } catch (e) { return []; }
+    }
+    function setBlockedSources(list) { localStorage.setItem(BLOCKED_SOURCES_KEY, JSON.stringify(list)); }
+
+    function getBlockedTopics() {
+      try { return JSON.parse(localStorage.getItem(BLOCKED_TOPICS_KEY) || '[]'); } catch (e) { return []; }
+    }
+    function setBlockedTopics(list) { localStorage.setItem(BLOCKED_TOPICS_KEY, JSON.stringify(list)); }
+
+    function getLikes() {
+      try { return JSON.parse(localStorage.getItem(LIKES_KEY) || '[]'); } catch (e) { return []; }
+    }
+    function setLikes(list) { localStorage.setItem(LIKES_KEY, JSON.stringify(list)); }
 
     function getSearchLanguageHints() {
       const lang = getPreferredLanguage();
@@ -1040,6 +1122,7 @@
     }
 
     function bindActions() {
+      // Article-level actions (read, approve, reject, like, reject-topic, block-source)
       articleList.addEventListener('click', async (event) => {
         const readBtn = event.target.closest('[data-read]');
         if (readBtn) {
@@ -1063,6 +1146,27 @@
         const rejectBtn = event.target.closest('[data-reject]');
         if (rejectBtn) {
           await takeAction('reject', rejectBtn.dataset.reject);
+          return;
+        }
+
+        const likeBtn = event.target.closest('[data-like]');
+        if (likeBtn) {
+          toggleLike(likeBtn.dataset.like);
+          return;
+        }
+
+        const rejectTopicBtn = event.target.closest('[data-reject-topic]');
+        if (rejectTopicBtn) {
+          const topic = decodeHtml(rejectTopicBtn.dataset.rejectTopic || rejectTopicBtn.getAttribute('data-reject-topic'));
+          toggleBlockedTopic(topic);
+          return;
+        }
+
+        const blockSourceBtn = event.target.closest('[data-block-source]');
+        if (blockSourceBtn) {
+          const source = decodeHtml(blockSourceBtn.dataset.blockSource || blockSourceBtn.getAttribute('data-block-source'));
+          toggleBlockedSource(source);
+          return;
         }
       });
 
@@ -1126,7 +1230,47 @@
           }
         }
       });
+
+      // Settings controls
+      const langRadios = document.querySelectorAll('input[name="langMode"]');
+      langRadios.forEach(r => r.addEventListener('change', (e) => setLangMode(e.target.value)));
+
+      const showDiscoveryBtn = document.getElementById('openDiscoveryFromSettings');
+      if (showDiscoveryBtn) showDiscoveryBtn.addEventListener('click', () => {
+        const desktop = document.querySelector('.desktop-sidebar');
+        if (desktop) desktop.classList.toggle('visible');
+      });
     }
+
+    function toggleLike(articleId) {
+      const likes = getLikes();
+      const next = likes.includes(articleId) ? likes.filter(x => x !== articleId) : [...likes, articleId];
+      setLikes(next);
+      setStatus(next.includes(articleId) ? 'Marked as liked.' : 'Removed like.', statusBox);
+      setStatus(next.includes(articleId) ? 'Marked as liked.' : 'Removed like.', mobileStatusBox);
+      fetchArticles();
+    }
+
+    function toggleBlockedSource(source) {
+      const current = getBlockedSources();
+      const next = current.includes(source) ? current.filter(s => s !== source) : [...current, source];
+      setBlockedSources(next);
+      setStatus(next.includes(source) ? `${source} blocked.` : `${source} unblocked.`, statusBox);
+      setStatus(next.includes(source) ? `${source} blocked.` : `${source} unblocked.`, mobileStatusBox);
+      fetchArticles();
+    }
+
+    function toggleBlockedTopic(topic) {
+      const current = getBlockedTopics();
+      const next = current.includes(topic) ? current.filter(s => s !== topic) : [...current, topic];
+      setBlockedTopics(next);
+      setStatus(next.includes(topic) ? `Topic blocked.` : `Topic unblocked.`, statusBox);
+      setStatus(next.includes(topic) ? `Topic blocked.` : `Topic unblocked.`, mobileStatusBox);
+      fetchArticles();
+    }
+
+    // decode dataset-encoded HTML
+    function decodeHtml(s) { return (s || '').replace(/&quot;/g, '"').replace(/&#39;/g, "'"); }
 
     document.addEventListener('keydown', (event) => {
       if (event.key === 'Escape' && modal.classList.contains('open')) closeArticleModal();
@@ -1165,6 +1309,10 @@
     renderDiscoveryList();
     renderSearchResults('');
     bindActions();
+    // initialize language radio to saved mode
+    const langInit = getLangMode();
+    const radio = document.querySelector(`input[name="langMode"][value="${langInit}"]`);
+    if (radio) radio.checked = true;
     fetchArticles();
   </script>
 </body>
