@@ -1,0 +1,1171 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#1d5eff" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/icon.svg" />
+  <title>Mindful News — Editorial</title>
+  <style>
+    :root {
+      --bg: #f5f7f9;
+      --panel: #ffffff;
+      --panel-alt: #f7f9fc;
+      --line: #e9edf3;
+      --text: #172033;
+      --muted: #5f6d7d;
+      --accent: #1d5eff;
+      --accent-strong: #154ac9;
+      --accent-soft: #eaf1ff;
+      --success: #0f8a60;
+      --danger: #b3261e;
+      --shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.45;
+    }
+
+    button, input {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    input {
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .app-shell {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px 16px 32px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 18px;
+      padding: 12px 14px;
+      background: rgba(255,255,255,0.72);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 1px 0 rgba(15,23,42,0.03);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .brand-mark {
+      display: inline-flex;
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      background: linear-gradient(135deg, var(--accent), #6ea8ff);
+      color: white;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.25);
+    }
+
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .ghost-btn, .primary-btn, .danger-btn, .menu-btn {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--text);
+      border-radius: 10px;
+      padding: 8px 12px;
+      transition: all 0.2s ease;
+    }
+
+    .toolbar-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 40px;
+    }
+
+    .toolbar-icon {
+      font-size: 1.05rem;
+      line-height: 1;
+    }
+
+    .toolbar-label {
+      display: inline;
+    }
+
+    .install-btn {
+      display: none;
+    }
+
+    .icon-only {
+      width: 40px;
+      min-width: 40px;
+      height: 40px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      line-height: 1;
+    }
+
+    .primary-btn {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .danger-btn {
+      background: #fff;
+      color: var(--danger);
+      border-color: rgba(179,38,30,0.2);
+    }
+
+    .ghost-btn:hover, .primary-btn:hover, .danger-btn:hover, .menu-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .menu-btn {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      min-width: 44px;
+      min-height: 44px;
+    }
+
+    .drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.36);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.2s ease, visibility 0.2s ease;
+      z-index: 24;
+    }
+
+    .drawer-backdrop.show {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    /* Hide the mobile drawer on larger screens to avoid duplicate discovery panels */
+    .sidebar-drawer {
+      display: none;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.8fr) minmax(280px, 0.82fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .digest-panel {
+      padding: 18px;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .panel-header h2,
+    .panel-header h3 {
+      margin: 0;
+      font-size: clamp(1.2rem, 1.8vw, 1.7rem);
+    }
+
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      color: var(--muted);
+      background: var(--panel-alt);
+      border: 1px solid var(--line);
+    }
+
+    .article-list {
+      display: grid;
+      gap: 14px;
+    }
+
+    .article-card {
+      background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 16px;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .article-card:hover {
+      border-color: #ccd9ff;
+      box-shadow: 0 8px 20px rgba(29,94,255,0.06);
+    }
+
+    .article-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .article-meta {
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    .article-card h3 {
+      margin: 0;
+      font-size: 1.1rem;
+      line-height: 1.3;
+    }
+
+    .article-summary {
+      color: var(--text);
+      margin: 9px 0 12px;
+      font-size: 0.98rem;
+    }
+
+    .article-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .link-btn {
+      border: 1px solid var(--line);
+      background: var(--panel-alt);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 8px 12px;
+    }
+
+    .primary-btn.small,
+    .danger-btn.small,
+    .ghost-btn.small,
+    .link-btn.small {
+      padding: 7px 10px;
+      font-size: 0.9rem;
+    }
+
+    .sidebar {
+      display: grid;
+      gap: 18px;
+    }
+
+    .sidebar-panel {
+      padding: 16px;
+    }
+
+    .sidebar-panel h3 {
+      margin: 0 0 12px;
+      font-size: 1.05rem;
+    }
+
+    .source-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .source-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 9px 10px;
+      background: var(--panel-alt);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+    }
+
+    .source-row strong {
+      font-size: 0.95rem;
+    }
+
+    .source-row button {
+      border: 1px solid #dfe8ff;
+      background: #edf3ff;
+      color: var(--accent-strong);
+      border-radius: 8px;
+      padding: 6px 8px;
+      font-size: 0.85rem;
+    }
+
+    .settings-list,
+    .results-list {
+      display: grid;
+      gap: 12px;
+      color: var(--muted);
+    }
+
+    .settings-list label,
+    .results-list label {
+      display: block;
+      font-size: 0.85rem;
+      margin-bottom: 6px;
+    }
+
+    .settings-list input,
+    .results-list input {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 9px 10px;
+      background: #fff;
+    }
+
+    .result-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel-alt);
+    }
+
+    .result-item strong {
+      display: block;
+      color: var(--text);
+      font-size: 0.95rem;
+      margin-bottom: 2px;
+    }
+
+    .result-item span {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .status {
+      margin-top: 14px;
+      padding: 10px 12px;
+      background: var(--accent-soft);
+      border: 1px solid #d8e5ff;
+      color: var(--accent-strong);
+      border-radius: 10px;
+      font-size: 0.9rem;
+      display: none;
+    }
+
+    .status.visible {
+      display: block;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.48);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 20;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal {
+      width: min(900px, calc(100vw - 32px));
+      max-height: 90vh;
+      overflow: auto;
+      background: var(--panel);
+      border-radius: 20px;
+      border: 1px solid var(--line);
+      box-shadow: 0 32px 100px rgba(15,23,42,0.25);
+      padding: 18px 18px 20px;
+    }
+
+    .modal h3 {
+      margin: 0 0 8px;
+      font-size: clamp(1.35rem, 2vw, 2rem);
+    }
+
+    .modal-meta {
+      color: var(--muted);
+      margin-bottom: 12px;
+      font-size: 0.9rem;
+    }
+
+    .modal-body {
+      color: var(--text);
+      line-height: 1.7;
+    }
+
+    .modal-footer {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    .empty-state {
+      background: var(--panel-alt);
+      border: 1px dashed var(--line);
+      border-radius: 14px;
+      color: var(--muted);
+      padding: 18px;
+      text-align: center;
+    }
+
+    @media (max-width: 860px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        order: -1;
+      }
+
+      .sidebar-drawer {
+        display: block;
+        position: fixed;
+        inset: 0 0 0 auto;
+        width: min(92vw, 360px);
+        background: rgba(255,255,255,0.98);
+        border-left: 1px solid var(--line);
+        box-shadow: -18px 0 40px rgba(15,23,42,0.18);
+        padding: 18px 16px 22px;
+        transform: translateX(110%);
+        transition: transform 0.25s ease;
+        z-index: 30;
+        overflow: auto;
+      }
+
+      .sidebar-drawer.open {
+        transform: translateX(0);
+      }
+
+      .mobile-sidebar {
+        display: block;
+      }
+
+      .desktop-sidebar {
+        display: none !important;
+      }
+
+      .menu-btn {
+        display: inline-flex;
+      }
+    }
+
+    @media (pointer: coarse), (hover: none) {
+      .ghost-btn, .primary-btn, .danger-btn, .menu-btn, .toolbar-btn {
+        min-height: 46px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+      }
+
+      .source-row button,
+      .result-item button {
+        min-height: 42px;
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .app-shell {
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+
+      .topbar {
+        padding: 10px 12px;
+      }
+
+      .topbar-actions {
+        gap: 6px;
+      }
+
+      .toolbar-label {
+        display: none;
+      }
+
+      .toolbar-btn {
+        width: 40px;
+        min-width: 40px;
+        height: 40px;
+        padding: 0;
+      }
+
+      .ghost-btn.small,
+      .menu-btn {
+        border-radius: 10px;
+      }
+
+      .article-head {
+        flex-direction: column;
+      }
+
+      .article-actions {
+        width: 100%;
+      }
+
+      .article-actions > * {
+        flex: 1 1 100%;
+      }
+
+      .panel-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="drawer-backdrop" id="drawerBackdrop"></div>
+
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand" aria-label="Mindful News home">
+        <span class="brand-mark">M</span>
+        <span>Mindful • Daily</span>
+      </div>
+
+      <div class="topbar-actions">
+        <button class="menu-btn toolbar-btn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="sidebarDrawer" id="menuButton" title="Open menu">
+          <span class="toolbar-icon">☰</span>
+          <span class="toolbar-label">Menu</span>
+        </button>
+        <button class="ghost-btn small toolbar-btn" type="button" id="refreshButton" aria-label="Refresh" title="Refresh">
+          <span class="toolbar-icon">↻</span>
+          <span class="toolbar-label">Refresh</span>
+        </button>
+        <button class="ghost-btn small toolbar-btn" type="button" id="toggleDiscovery" aria-label="Discover sources" title="Discover">
+          <span class="toolbar-icon">⌕</span>
+          <span class="toolbar-label">Discover</span>
+        </button>
+        <button class="ghost-btn small toolbar-btn" type="button" id="logoutButton" aria-label="Log out" title="Log out">
+          <span class="toolbar-icon">⇥</span>
+          <span class="toolbar-label">Logout</span>
+        </button>
+        <button class="primary-btn small toolbar-btn install-btn" type="button" id="installButton" aria-label="Install app" title="Install app">
+          <span class="toolbar-icon">⊕</span>
+          <span class="toolbar-label">Install</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <main class="panel digest-panel" aria-live="polite">
+        <div class="panel-header">
+          <h2>Ready for review</h2>
+          <span class="meta-pill" id="countPill">0 stories</span>
+        </div>
+
+        <div id="articleList" class="article-list" aria-live="polite"></div>
+      </main>
+
+      <aside class="sidebar desktop-sidebar" aria-label="Discovery sidebar">
+        <div class="panel sidebar-panel" id="discoverPanel">
+          <h3>Discovery</h3>
+          <div class="results-list" style="margin-bottom: 12px;">
+            <div>
+              <label for="discoverySearch">Find new sources or topics</label>
+              <input id="discoverySearch" type="search" placeholder="Search by name, region, or issue" aria-label="Search discovery" />
+            </div>
+          </div>
+          <div class="source-list" id="sourceList"></div>
+          <div class="source-list" id="searchResults" style="margin-top: 12px;"></div>
+          <div class="status" id="statusBox" role="status" aria-live="polite"></div>
+        </div>
+
+        <div class="panel sidebar-panel">
+          <h3>Settings</h3>
+          <div class="settings-list">
+            <div>
+              <label for="keywordFilter">Mute keywords</label>
+              <input id="keywordFilter" type="text" value="crime, stock market" aria-label="Mute keywords" />
+            </div>
+            <div>
+              <label for="readingMode">Reading mode</label>
+              <input id="readingMode" type="text" value="calm" aria-label="Reading mode" />
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <aside class="sidebar-drawer" id="sidebarDrawer" aria-label="Mobile discovery panel">
+    <div class="panel sidebar-panel" style="border: none; box-shadow: none; background: transparent;">
+      <div class="panel-header" style="margin-bottom: 10px;">
+        <h3>Discovery</h3>
+        <button class="ghost-btn small" type="button" id="closeDrawer">Close</button>
+      </div>
+      <div class="results-list" style="margin-bottom: 12px;">
+        <div>
+          <label for="mobileDiscoverySearch">Find new sources or topics</label>
+          <input id="mobileDiscoverySearch" type="search" placeholder="Search by name, region, or issue" aria-label="Search discovery" />
+        </div>
+      </div>
+      <div class="source-list" id="mobileSourceList"></div>
+      <div class="source-list" id="mobileSearchResults" style="margin-top: 12px;"></div>
+      <div class="status" id="mobileStatusBox" role="status" aria-live="polite"></div>
+    </div>
+  </aside>
+
+  <div class="modal-backdrop" id="articleModal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-header">
+        <h3 id="modalTitle">Article title</h3>
+      </div>
+      <div class="modal-meta" id="modalMeta">Source • date</div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-footer">
+        <button class="primary-btn small" type="button" id="approveFromModal">Approve</button>
+        <button class="danger-btn small" type="button" id="rejectFromModal">Reject</button>
+        <button class="ghost-btn small" type="button" id="closeModal">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = '/articles?sandbox=1&limit=50';
+    const STORAGE_KEY = 'mnf_auth';
+    const DISCOVERY_STORAGE_KEY = 'mnf_discovery_sources';
+    const DEFAULT_TOPICS = [
+      'Climate', 'Water', 'Global South', 'Labor', 'Ecology', 'Migration', 'Energy',
+      'Public health', 'Housing', 'Local journalism', 'Arctic', 'Indigenous rights',
+      'Anti-imperialism', 'OpenDemocracy', 'Mongabay', 'Bellingcat', 'The Guardian',
+      'The Intercept', 'NACLA', 'Jacobin', 'Al Jazeera', 'NHK World', 'BBC', 'Reuters',
+      'Scientific American', 'NASA', 'Euronews', 'National Geographic', 'Associated Press',
+      'The Nation', 'The Wire', 'Le Monde', 'El País', 'Mail & Guardian'
+    ];
+
+    const SEARCH_CATALOG = [
+      { label: 'Climate', aliases: ['climate', 'warming', 'global warming', 'environment', 'climatic', 'weather', 'clima', 'calentamiento', 'climat', 'réchauffement', 'klima', 'erwärmung'] },
+      { label: 'Water', aliases: ['water', 'drought', 'flooding', 'river', 'lake', 'aquifer', 'hydrology', 'agua', 'sequía', 'inundaciones', 'eau', 'sécheresse', 'wasser', 'dürre'] },
+      { label: 'Global South', aliases: ['global south', 'south', 'global south politics', 'developing world', 'global majority', 'imperialism', 'colonialism', 'sur global', 'sud global', 'monde du sud', 'süd global'] },
+      { label: 'Labor', aliases: ['labor', 'workers', 'work', 'union', 'jobs', 'labour', 'employment', 'trabajo', 'trabajadores', 'sindicatos', 'travail', 'ouvriers', 'arbeitsmarkt', 'arbeiter'] },
+      { label: 'Ecology', aliases: ['ecology', 'ecosystems', 'wildlife', 'conservation', 'nature', 'biodiversity', 'ecología', 'naturaleza', 'écologie', 'biodiversité', 'ökologie'] },
+      { label: 'Migration', aliases: ['migration', 'migrants', 'refugees', 'asylum', 'immigration', 'border', 'migración', 'refugiados', 'migration', 'réfugiés', 'flüchtlinge'] },
+      { label: 'Energy', aliases: ['energy', 'electricity', 'solar', 'wind', 'oil', 'gas', 'renewables', 'energía', 'eléctricidad', 'solaire', 'energie', 'électricité'] },
+      { label: 'Public health', aliases: ['public health', 'healthcare', 'hospitals', 'medicine', 'wellbeing', 'health care', 'salud pública', 'sanidad', 'santé publique', 'gesundheit'] },
+      { label: 'Housing', aliases: ['housing', 'rent', 'eviction', 'homes', 'real estate', 'tenants', 'vivienda', 'alquiler', 'logement', 'wohnen'] },
+      { label: 'Local journalism', aliases: ['local journalism', 'community media', 'citizen journalism', 'local news', 'periodismo local', 'journalisme local', 'lokale journalistik'] },
+      { label: 'Arctic', aliases: ['arctic', 'polar', 'ice', 'arctic circle', 'ártico', 'polo', 'arctique', 'arktis'] },
+      { label: 'Indigenous rights', aliases: ['indigenous rights', 'native rights', 'tribal sovereignty', 'indigenous justice', 'derechos indígenas', 'droits autochtones', 'indigene rechte'] },
+      { label: 'Anti-imperialism', aliases: ['anti-imperialism', 'anti imperialism', 'imperialism', 'decolonization', 'colonialism', 'anticolonialismo', 'antimperialismo', 'anticolonialisme'] },
+      { label: 'OpenDemocracy', aliases: ['opendemocracy', 'open democracy', 'open-democracy'] },
+      { label: 'Mongabay', aliases: ['mongabay', 'mongabay environmental'] },
+      { label: 'Bellingcat', aliases: ['bellingcat', 'belling cat'] },
+      { label: 'The Guardian', aliases: ['guardian', 'the guardian'] },
+      { label: 'The Intercept', aliases: ['the intercept', 'intercept'] },
+      { label: 'NACLA', aliases: ['nacla', 'north american congress on latin america'] },
+      { label: 'Jacobin', aliases: ['jacobin', 'jacobin magazine'] },
+      { label: 'Al Jazeera', aliases: ['al jazeera', 'aljazeera', 'aj'] },
+      { label: 'NHK World', aliases: ['nhk world', 'nhk', 'nhk world japan'] },
+      { label: 'BBC', aliases: ['bbc', 'british broadcasting corporation'] },
+      { label: 'Reuters', aliases: ['reuters', 'reuter'] },
+      { label: 'Scientific American', aliases: ['scientific american', 'sciam', 'science'] },
+      { label: 'NASA', aliases: ['nasa', 'space agency'] },
+      { label: 'Euronews', aliases: ['euronews', 'europe news'] },
+      { label: 'National Geographic', aliases: ['national geographic', 'nat geo', 'natgeo'] },
+      { label: 'Associated Press', aliases: ['associated press', 'ap news', 'ap'] },
+      { label: 'The Nation', aliases: ['the nation', 'nation magazine'] },
+      { label: 'The Wire', aliases: ['the wire', 'wire'] },
+      { label: 'Le Monde', aliases: ['le monde', 'monde'] },
+      { label: 'El País', aliases: ['el pais', 'elpais'] },
+      { label: 'Mail & Guardian', aliases: ['mail and guardian', 'mail & guardian', 'mail guardian'] },
+      { label: 'Democracy Now', aliases: ['democracy now', 'democracynow'] },
+      { label: 'Truthout', aliases: ['truthout', 'truth out'] },
+      { label: 'ProPublica', aliases: ['propublica', 'pro publica'] },
+      { label: 'Maya Yang', aliases: ['maya yang', 'yang'] },
+      { label: 'Climate crisis', aliases: ['climate crisis', 'warming crisis', 'global heating', 'crisis climática', 'crise climatique', 'klimakrise'] },
+      { label: 'Environmental justice', aliases: ['environmental justice', 'environmental racism', 'climate justice', 'justicia ambiental', 'justice environnementale', 'umweltgerechtigkeit'] },
+      { label: 'Human rights', aliases: ['human rights', 'rights', 'justice', 'civil rights', 'liberties', 'derechos humanos', 'droits de l’homme', 'menschenrechte'] },
+      { label: 'War and peace', aliases: ['war', 'peace', 'conflict', 'military', 'armed conflict', 'guerra', 'paz', 'guerre', 'paix', 'krieg', 'frieden'] },
+      { label: 'Media literacy', aliases: ['media literacy', 'propaganda', 'disinformation', 'misinformation', 'news literacy', 'alfabetización mediática', 'alphabétisation médiatique', 'medienkompetenz'] }
+    ];
+
+    const articleList = document.getElementById('articleList');
+    const countPill = document.getElementById('countPill');
+    const modal = document.getElementById('articleModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalMeta = document.getElementById('modalMeta');
+    const modalBody = document.getElementById('modalBody');
+    const statusBox = document.getElementById('statusBox');
+    const mobileStatusBox = document.getElementById('mobileStatusBox');
+    const discoveryDrawer = document.getElementById('sidebarDrawer');
+    const drawerBackdrop = document.getElementById('drawerBackdrop');
+    const sourceList = document.getElementById('sourceList');
+    const mobileSourceList = document.getElementById('mobileSourceList');
+    const discoverySearch = document.getElementById('discoverySearch');
+    const mobileDiscoverySearch = document.getElementById('mobileDiscoverySearch');
+    const searchResults = document.getElementById('searchResults');
+    const mobileSearchResults = document.getElementById('mobileSearchResults');
+    let selectedArticle = null;
+    let articleIndex = [];
+
+    function getDiscoverySources() {
+      try {
+        const stored = JSON.parse(localStorage.getItem(DISCOVERY_STORAGE_KEY) || '[]');
+        return Array.isArray(stored) ? stored : [];
+      } catch (error) {
+        return [];
+      }
+    }
+
+    function setDiscoverySources(list) {
+      localStorage.setItem(DISCOVERY_STORAGE_KEY, JSON.stringify(list));
+    }
+
+    function getAuth() {
+      const creds = localStorage.getItem(STORAGE_KEY);
+      if (!creds) {
+        const username = prompt('Username:', 'admin');
+        const password = prompt('Password:', '');
+        if (!username || !password) return null;
+        const encoded = btoa(username + ':' + password);
+        localStorage.setItem(STORAGE_KEY, encoded);
+        return encoded;
+      }
+      return creds;
+    }
+
+    function setStatus(message, target = statusBox) {
+      target.textContent = message;
+      target.classList.add('visible');
+    }
+
+    function clearStatus() {
+      statusBox.classList.remove('visible');
+      mobileStatusBox.classList.remove('visible');
+      statusBox.textContent = '';
+      mobileStatusBox.textContent = '';
+    }
+
+    function authHeaders() {
+      const creds = getAuth();
+      return creds
+        ? { 'Authorization': 'Basic ' + creds, 'Content-Type': 'application/json' }
+        : { 'Content-Type': 'application/json' };
+    }
+
+    function formatDate(value) {
+      if (!value) return 'No date';
+      try {
+        const date = new Date(value);
+        if (!Number.isNaN(date)) return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+      } catch (e) {}
+      return value;
+    }
+
+    function renderArticles(list) {
+      const ordered = [...list].sort((a, b) => {
+        const aDate = new Date(a.published || a.inserted_at || 0).getTime();
+        const bDate = new Date(b.published || b.inserted_at || 0).getTime();
+        return bDate - aDate;
+      });
+
+      articleIndex = [];
+      articleList.innerHTML = '';
+      const countLabel = ordered.length === 1 ? '1 story' : `${ordered.length} stories`;
+      countPill.textContent = countLabel;
+
+      if (!ordered.length) {
+        articleList.innerHTML = '<div class="empty-state">No stories are waiting in the sandbox right now.</div>';
+        return;
+      }
+
+      articleIndex = ordered.flatMap((article) => [article.title, article.source_name]).filter(Boolean);
+
+      ordered.forEach((article) => {
+        const card = document.createElement('article');
+        card.className = 'article-card';
+        const summary = (article.summary || article.content || 'No summary provided.').replace(/<[^>]+>/g, '').trim();
+        card.innerHTML = `
+          <div class="article-head">
+            <div>
+              <div class="article-meta">${article.source_name || 'Source'} • ${formatDate(article.published)}</div>
+              <h3>${article.title || 'Untitled article'}</h3>
+            </div>
+          </div>
+          <p class="article-summary">${summary.slice(0, 220)}${summary.length > 220 ? '…' : ''}</p>
+          <div class="article-actions">
+            <button class="primary-btn small" type="button" data-read="${article.id}">Read</button>
+            <button class="primary-btn small" type="button" data-approve="${article.id}">Approve</button>
+            <button class="danger-btn small" type="button" data-reject="${article.id}">Reject</button>
+          </div>
+        `;
+        articleList.appendChild(card);
+      });
+    }
+
+    function renderDiscoveryList() {
+      const sources = getDiscoverySources();
+      const baseList = sources.length ? sources : DEFAULT_TOPICS;
+
+      const markup = baseList.slice(0, 6).map((source) => {
+        const isAdded = sources.includes(source);
+        return `
+          <div class="source-row">
+            <strong>${source}</strong>
+            <button type="button" data-source="${source}">${isAdded ? 'Added' : 'Try'}</button>
+          </div>
+        `;
+      }).join('');
+
+      sourceList.innerHTML = markup;
+      mobileSourceList.innerHTML = markup;
+    }
+
+    function getPreferredLanguage() {
+      const navLang = (navigator.language || navigator.languages?.[0] || 'en').toLowerCase();
+      const primary = navLang.split('-')[0];
+      return primary || 'en';
+    }
+
+    function getSearchLanguageHints() {
+      const lang = getPreferredLanguage();
+      const hints = {
+        en: ['en', 'us', 'gb'],
+        es: ['es', 'mx', 'latam'],
+        fr: ['fr', 'ca'],
+        de: ['de'],
+        pt: ['pt', 'br'],
+        ar: ['ar'],
+        ja: ['ja'],
+        ko: ['ko'],
+        zh: ['zh', 'cn', 'tw'],
+        it: ['it']
+      };
+      return hints[lang] || hints.en;
+    }
+
+    function normalizeSearchText(value) {
+      return (value || '')
+        .toLowerCase()
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9\s-]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function getSearchCandidates() {
+      const languageHints = getSearchLanguageHints();
+      const sourceMatches = [...new Set([...DEFAULT_TOPICS, ...getDiscoverySources(), ...articleIndex])]
+        .map((item) => {
+          const record = SEARCH_CATALOG.find((entry) => entry.label === item || entry.aliases.some((alias) => normalizeSearchText(alias) === normalizeSearchText(item)));
+          const aliases = record ? record.aliases : [item];
+          const localeWeight = aliases.some((alias) => {
+            const aliasText = normalizeSearchText(alias);
+            return languageHints.some((hint) => aliasText.includes(hint));
+          }) ? 0 : 1;
+          return { item, aliases, localeWeight };
+        });
+      return sourceMatches.sort((a, b) => a.localeWeight - b.localeWeight);
+    }
+
+    function renderSearchResults(query) {
+      const normalized = normalizeSearchText(query);
+      const suggestions = getSearchCandidates();
+
+      if (!normalized) {
+        const empty = '<div class="empty-state">Search for a topic, region, or outlet.</div>';
+        searchResults.innerHTML = empty;
+        mobileSearchResults.innerHTML = empty;
+        return;
+      }
+
+      const tokenized = normalized.split(' ').filter(Boolean);
+      const matches = suggestions
+        .filter(({ item, aliases }) => {
+          const haystacks = [...new Set([item, ...aliases].map(normalizeSearchText))];
+          return haystacks.some((haystack) => {
+            return tokenized.every((token) => haystack.includes(token)) ||
+              tokenized.some((token) => haystack.includes(token));
+          });
+        })
+        .map(({ item }) => item)
+        .slice(0, 8);
+
+      if (!matches.length) {
+        const empty = '<div class="empty-state">No matches yet — try a broader topic like “climate”, “water”, “justice”, or “south”.</div>';
+        searchResults.innerHTML = empty;
+        mobileSearchResults.innerHTML = empty;
+        return;
+      }
+
+      const markup = matches.map((item) => `
+        <div class="result-item">
+          <div>
+            <strong>${item}</strong>
+            <span>${getDiscoverySources().includes(item) ? 'In your discovery feed' : 'Suggested topic or source'}</span>
+          </div>
+          <button class="ghost-btn small" type="button" data-source="${item}">${getDiscoverySources().includes(item) ? 'Remove' : 'Add'}</button>
+        </div>
+      `).join('');
+
+      searchResults.innerHTML = markup;
+      mobileSearchResults.innerHTML = markup;
+    }
+
+    function setDrawerOpen(isOpen) {
+      discoveryDrawer.classList.toggle('open', isOpen);
+      drawerBackdrop.classList.toggle('show', isOpen);
+      document.getElementById('menuButton').setAttribute('aria-expanded', String(isOpen));
+    }
+
+    function toggleDiscoverySource(source) {
+      const current = getDiscoverySources();
+      const next = current.includes(source)
+        ? current.filter((item) => item !== source)
+        : [...current, source];
+      setDiscoverySources(next);
+      renderDiscoveryList();
+      renderSearchResults((discoverySearch || {}).value || (mobileDiscoverySearch || {}).value || '');
+      setStatus(`${source} ${next.includes(source) ? 'added to' : 'removed from'} discovery.`, statusBox);
+      setStatus(`${source} ${next.includes(source) ? 'added to' : 'removed from'} discovery.`, mobileStatusBox);
+    }
+
+    async function fetchArticles() {
+      const res = await fetch(API, { headers: authHeaders() });
+      if (res.status === 401) {
+        localStorage.removeItem(STORAGE_KEY);
+        alert('Unauthorized — please log in again.');
+        return fetchArticles();
+      }
+      const data = await res.json();
+      // Filter articles to prefer the user's preferred language when available
+      const pref = getPreferredLanguage();
+      const filtered = (data || []).filter((a) => {
+        const aLang = (a.language || a.lang || '').toString().toLowerCase().split('-')[0];
+        // keep if language is unknown, or matches preferred primary language
+        return !aLang || aLang === pref;
+      });
+      renderArticles(filtered);
+    }
+
+    function openArticleModal(article) {
+      selectedArticle = article;
+      modalTitle.textContent = article.title || 'Untitled article';
+      modalMeta.textContent = `${article.source_name || 'Source'} • ${formatDate(article.published)}`;
+      const summary = article.summary || article.content || 'No summary provided.';
+      modalBody.innerHTML = `<p>${summary.replace(/\n/g, '</p><p>')}</p>`;
+      modal.classList.add('open');
+      modal.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeArticleModal() {
+      modal.classList.remove('open');
+      modal.setAttribute('aria-hidden', 'true');
+      selectedArticle = null;
+    }
+
+    async function takeAction(action, articleId) {
+      const res = await fetch(`/articles/${encodeURIComponent(articleId)}/${action}`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ notes: '' })
+      });
+      if (res.status === 401) {
+        localStorage.removeItem(STORAGE_KEY);
+        alert('Unauthorized — please log in again.');
+        return;
+      }
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        alert(payload.error || `Action failed (${res.status})`);
+        return;
+      }
+      clearStatus();
+      setStatus(action === 'approve' ? 'Article approved.' : 'Article rejected.', statusBox);
+      setStatus(action === 'approve' ? 'Article approved.' : 'Article rejected.', mobileStatusBox);
+      await fetchArticles();
+      if (selectedArticle && selectedArticle.id === articleId) closeArticleModal();
+    }
+
+    function bindActions() {
+      articleList.addEventListener('click', async (event) => {
+        const readBtn = event.target.closest('[data-read]');
+        if (readBtn) {
+          const response = await fetch(`/articles/${encodeURIComponent(readBtn.dataset.read)}`, { headers: authHeaders() });
+          if (response.status === 401) {
+            localStorage.removeItem(STORAGE_KEY);
+            alert('Unauthorized — please log in again.');
+            return;
+          }
+          const article = await response.json();
+          openArticleModal(article);
+          return;
+        }
+
+        const approveBtn = event.target.closest('[data-approve]');
+        if (approveBtn) {
+          await takeAction('approve', approveBtn.dataset.approve);
+          return;
+        }
+
+        const rejectBtn = event.target.closest('[data-reject]');
+        if (rejectBtn) {
+          await takeAction('reject', rejectBtn.dataset.reject);
+        }
+      });
+
+      document.getElementById('approveFromModal').addEventListener('click', async () => {
+        if (selectedArticle) await takeAction('approve', selectedArticle.id);
+      });
+
+      document.getElementById('rejectFromModal').addEventListener('click', async () => {
+        if (selectedArticle) await takeAction('reject', selectedArticle.id);
+      });
+
+      document.getElementById('closeModal').addEventListener('click', closeArticleModal);
+      modal.addEventListener('click', (event) => {
+        if (event.target === modal) closeArticleModal();
+      });
+
+      document.getElementById('refreshButton').addEventListener('click', async () => {
+        clearStatus();
+        await fetchArticles();
+      });
+
+      document.getElementById('logoutButton').addEventListener('click', () => {
+        localStorage.removeItem(STORAGE_KEY);
+        location.reload();
+      });
+
+      document.getElementById('toggleDiscovery').addEventListener('click', () => {
+        const isOpen = !discoveryDrawer.classList.contains('open');
+        setDrawerOpen(isOpen);
+      });
+
+      document.getElementById('menuButton').addEventListener('click', () => {
+        const isOpen = !discoveryDrawer.classList.contains('open');
+        setDrawerOpen(isOpen);
+      });
+
+      document.getElementById('closeDrawer').addEventListener('click', () => {
+        setDrawerOpen(false);
+      });
+
+      drawerBackdrop.addEventListener('click', () => setDrawerOpen(false));
+
+      discoverySearch.addEventListener('input', (event) => {
+        renderSearchResults(event.target.value);
+        if (mobileDiscoverySearch) mobileDiscoverySearch.value = event.target.value;
+      });
+
+      if (mobileDiscoverySearch) {
+        mobileDiscoverySearch.addEventListener('input', (event) => {
+          renderSearchResults(event.target.value);
+          if (discoverySearch) discoverySearch.value = event.target.value;
+        });
+      }
+
+      document.addEventListener('click', (event) => {
+        const sourceToggle = event.target.closest('[data-source]');
+        if (sourceToggle && sourceToggle.dataset.source) {
+          toggleDiscoverySource(sourceToggle.dataset.source);
+          if (sourceToggle.closest('#searchResults')) {
+            renderSearchResults(discoverySearch.value || '');
+          }
+        }
+      });
+    }
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && modal.classList.contains('open')) closeArticleModal();
+      if (event.key === 'Escape' && discoveryDrawer.classList.contains('open')) {
+        setDrawerOpen(false);
+      }
+    });
+
+    let deferredPrompt = null;
+    const installButton = document.getElementById('installButton');
+
+    window.addEventListener('beforeinstallprompt', (event) => {
+      event.preventDefault();
+      deferredPrompt = event;
+      if (installButton) {
+        installButton.style.display = 'inline-flex';
+      }
+    });
+
+    if (installButton) {
+      installButton.addEventListener('click', async () => {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        await deferredPrompt.userChoice;
+        deferredPrompt = null;
+        installButton.style.display = 'none';
+      });
+    }
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      });
+    }
+
+    renderDiscoveryList();
+    renderSearchResults('');
+    bindActions();
+    fetchArticles();
+  </script>
+</body>
+</html>
