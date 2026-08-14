@@ -655,6 +655,31 @@
           <div class="status" id="statusBox" role="status" aria-live="polite"></div>
         </div>
 
+        <!-- Inline settings panel for desktop (hidden by default) -->
+        <div class="panel sidebar-panel" id="settingsPanel" style="display:none;">
+          <h3>Settings</h3>
+          <div class="settings-list">
+            <div>
+              <label for="keywordFilter">Mute keywords</label>
+              <input id="keywordFilter" type="text" value="crime, stock market" aria-label="Mute keywords" />
+            </div>
+            <div>
+              <label for="readingMode">Reading mode</label>
+              <input id="readingMode" type="text" value="calm" aria-label="Reading mode" />
+            </div>
+            <div>
+              <label>Language preference</label>
+              <div>
+                <label><input type="radio" name="langMode" value="prefer" checked /> Prefer system language (fallback allowed)</label><br/>
+                <label><input type="radio" name="langMode" value="strict" /> Strict: show only system language</label>
+              </div>
+            </div>
+            <div>
+              <button class="ghost-btn small" type="button" id="openDiscoveryFromSettings">Show discovery</button>
+            </div>
+          </div>
+        </div>
+
       </aside>
     </div>
   </div>
@@ -1216,24 +1241,36 @@
       });
 
       document.getElementById('toggleDiscovery').addEventListener('click', () => {
-        // On small screens open the discovery drawer; on desktop toggle the sidebar visibility
+        // On small screens open the discovery drawer; on desktop toggle the discovery sidebar visibility
         if (window.matchMedia && window.matchMedia('(max-width: 860px)').matches) {
           const isOpen = !discoveryDrawer.classList.contains('open');
           setDrawerOpen(isOpen);
         } else {
           const desktop = document.querySelector('.desktop-sidebar');
+          const settingsPanel = document.getElementById('settingsPanel');
+          const discoverPanel = document.getElementById('discoverPanel');
           if (desktop) desktop.classList.toggle('visible');
+          // Ensure discovery is visible when using the Discover button
+          if (discoverPanel) discoverPanel.style.display = 'block';
+          if (settingsPanel) settingsPanel.style.display = 'none';
         }
       });
 
       document.getElementById('menuButton').addEventListener('click', () => {
-        // On small screens open the discovery drawer; on desktop open settings modal
+        // On small screens open the discovery drawer; on desktop show settings in the sidebar
         if (window.matchMedia && window.matchMedia('(max-width: 860px)').matches) {
           const isOpen = !discoveryDrawer.classList.contains('open');
           setDrawerOpen(isOpen);
         } else {
-          const modal = document.getElementById('settingsModal');
-          if (modal) modal.classList.toggle('open');
+          const desktop = document.querySelector('.desktop-sidebar');
+          const settingsPanel = document.getElementById('settingsPanel');
+          const discoverPanel = document.getElementById('discoverPanel');
+          if (desktop) desktop.classList.toggle('visible');
+          if (settingsPanel && discoverPanel) {
+            const showingSettings = settingsPanel.style.display === 'block';
+            settingsPanel.style.display = showingSettings ? 'none' : 'block';
+            discoverPanel.style.display = showingSettings ? 'block' : 'none';
+          }
         }
       });
 
@@ -1243,7 +1280,10 @@
 
       const closeSettings = document.getElementById('closeSettings');
       const settingsModal = document.getElementById('settingsModal');
+      const settingsPanel = document.getElementById('settingsPanel');
       if (closeSettings && settingsModal) closeSettings.addEventListener('click', () => settingsModal.classList.remove('open'));
+      // Also support closing the inline desktop settings panel
+      if (closeSettings && settingsPanel) closeSettings.addEventListener('click', () => { settingsPanel.style.display = 'none'; const discoverPanel = document.getElementById('discoverPanel'); if (discoverPanel) discoverPanel.style.display = 'block'; });
 
       drawerBackdrop.addEventListener('click', () => setDrawerOpen(false));
 
